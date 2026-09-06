@@ -1,9 +1,9 @@
-# Quantum Steganography
+# Quantum Secure Communication
 
-Hide a secret text message inside an ordinary "cover" sentence, protected by
-a shared secret key generated with real **Quantum Key Distribution (QKD)**
-protocols — **BB84**, **BBM92**, and **Ekert91** — simulated using
-[Qiskit](https://www.ibm.com/quantum/qiskit).
+Demonstrate two approaches to protected communication using **Quantum Key
+Distribution (QKD)** protocols — **BB84**, **BBM92**, and **Ekert91** —
+simulated using [Qiskit](https://www.ibm.com/quantum/qiskit): a teaching
+steganography demo and an authenticated one-time-pad message mode.
 
 ## Idea
 
@@ -39,12 +39,31 @@ message cannot be recovered.
 4. **Decoding:** Bob reads the case pattern back into bits, XORs with his
    copy of the QKD key, and recovers the original message.
 
+## Secure message mode
+
+The **Secure QKD Message** tab is the recommended design for confidentiality:
+
+1. Alice and Bob generate a fresh QKD key and compare QBER.
+2. Alice uses one fresh QKD bit for every plaintext bit; the key is never
+  cycled or reused.
+3. A separate 128-bit portion of the QKD key authenticates the ciphertext with
+  an HMAC-SHA-256 tag.
+4. Alice transfers the receiver key package and ciphertext package separately.
+5. Bob verifies the tag before decrypting. Modified or mismatched packages are
+  rejected.
+
+The simulator demonstrates the protocol mechanics. A production QKD system
+would establish the key over a quantum channel and authenticate the classical
+QKD control channel. Exporting a receiver key as a file is only suitable for
+this local demonstration.
+
 ## Project layout
 
 | File                    | Purpose                                                            |
 |-------------------------|---------------------------------------------------------------------|
 | `qkd_protocols.py`      | BB84, BBM92, and Ekert91 QKD simulations (Qiskit circuits)          |
 | `steganography.py`      | Encrypt/decrypt + hide/reveal bits in cover text via letter case    |
+| `secure_messaging.py`   | Non-repeating OTP encryption and authenticated message packages     |
 | `noisy_backend.py`      | A noisy simulator (gate + readout errors) standing in for real hardware, plus an ideal backend |
 | `compare_protocols.py`  | Generates comparison plots: ideal vs. noisy backend, per protocol   |
 | `main.py`               | Command-line, end-to-end interactive demo                          |
@@ -80,6 +99,8 @@ streamlit run app.py
 ```
 
 This opens a browser UI with:
+- A **Secure QKD Message** tab for authenticated OTP encryption and
+  sender/receiver package transfer.
 - A protocol selector and a qubit-count slider.
 - A live view of the quantum circuit used.
 - The generated Alice/Bob bases and sifted keys, with QBER.

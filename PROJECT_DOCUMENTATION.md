@@ -455,6 +455,60 @@ Bob performs these checks in order:
 
 If authentication fails, the message is rejected instead of being displayed.
 
+### 10.6 AES-GCM as the practical message-encryption option
+
+The current secure messaging implementation uses a one-time pad because it is
+useful for demonstrating information-theoretic confidentiality. However, an
+OTP requires fresh key material equal to the complete message length, which is
+expensive for long messages because QKD produces a limited sifted-key rate.
+
+AES-GCM is the practical alternative for a deployable version of this project.
+It combines:
+
+- **AES:** a standardized symmetric block cipher for confidentiality.
+- **GCM:** Galois/Counter Mode, which provides authenticated encryption.
+- **Authentication tag:** detects ciphertext or metadata modification.
+- **Nonce:** a unique per-message value required for safe GCM use.
+
+The production-oriented architecture would be:
+
+```text
+QKD sifted key
+    |
+Key derivation or key allocation
+    |
+256-bit AES key + unique nonce
+    |
+AES-GCM encrypt(message, associated_data)
+    |
+Ciphertext + nonce + authentication tag
+```
+
+The receiver would use the corresponding QKD-derived AES key, nonce, and
+authentication tag to verify and decrypt the message. If verification fails,
+the plaintext must be discarded.
+
+AES-GCM is different from the current OTP mode:
+
+| Property | Current OTP mode | AES-GCM mode |
+|---|---|---|
+| Key size | One fresh bit per message bit plus authentication bits | Fixed key, commonly 128 or 256 bits |
+| Key reuse | Forbidden | A key may protect multiple messages only with a unique nonce per message |
+| Confidentiality | Information-theoretic under OTP conditions | Computational, based on AES security |
+| Integrity | HMAC-SHA-256 tag in this project | GCM authentication tag |
+| Long messages | Requires a large QKD key | Efficient with limited QKD key material |
+| Best use | Demonstrating theoretical maximum secrecy | Practical application communication |
+
+QKD can periodically provide fresh AES keys or key material for deriving AES
+keys. This creates a hybrid system: quantum mechanics protects key
+establishment, while AES-GCM efficiently protects the application data.
+
+AES-GCM is not currently enabled as a Streamlit encryption option. It is a
+documented next implementation step. When added, the package should include
+the algorithm identifier, key/session identifier, nonce, ciphertext, tag, and
+any non-secret associated data. The AES key itself must never be included in
+the package.
+
 ---
 
 ## 11. Two-System Demonstration Procedure
@@ -801,7 +855,8 @@ A stronger research version could add:
 7. Secure key storage instead of JSON export.
 8. Session identifiers and replay protection.
 9. Key-consumption tracking to prevent accidental reuse.
-10. AES-GCM as a practical alternative when OTP key material is insufficient.
+10. Implement AES-GCM as a practical alternative when OTP key material is
+    insufficient, including unique nonce management and package versioning.
 11. Automated unit tests for all protocol and cryptographic paths.
 12. A separate network service for authenticated sender/receiver communication.
 13. More natural steganographic carriers if concealment remains a requirement.
